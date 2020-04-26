@@ -12,10 +12,10 @@ $ raco pkg install -i -D cs-bootstrap
 * Setup the boot files architecture. For `i386` (32-bits intel) use `MACH=i3le` (without threads) or `MACH=i3le` (with threads). For `x86_64` (64-bits intel) use `MACH=a6le` (without threads) or `MACH=ta6le` (with threads).
 ```
 $ cd ChezScheme
-ChezScheme $ MACH=... racket -l cs-bootstrap
+$ MACH=... racket -l cs-bootstrap
 ```
 
-Should finish by printing:
+This should finish by printing:
 ```
 Writing petite.boot
 Writing scheme.boot
