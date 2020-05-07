@@ -1831,11 +1831,7 @@ static ptr big_logbit1(tc, origx, n, x, xl, xs) ptr tc, origx, x; iptr n, xl; IB
       *--zp = x1;
       n -= bigit_bits;
     }
-<<<<<<< HEAD
     *--zp = x1 | ((bigit)1 << n);
-=======
-    *--zp = x1 | (1 << n);
->>>>>>> 830d176... sync simpler handling of tc U, V, W, X, Y
     for (; i > 0; i -= 1) *--zp = *--xp;
     return copy_normalize(tc, zp, zl, 0);
   } else if (yl > xl) {
