@@ -164,6 +164,11 @@
       (size size-ephemeron)
       (copy pair-car)
       (copy pair-cdr)
+      (case-mode
+       [(copy)
+        (set! (ephemeron-prev-ref _copy_) NULL)
+        (set! (ephemeron-next _copy_) NULL)]
+       [else])
       (add-ephemeron-to-pending)
       (mark one-bit no-sweep)
       (assert-ephemeron-size-ok)
@@ -920,11 +925,14 @@
       (trace-stack (cast uptr (tc-scheme-stack tc))
                    (cast uptr (SFP tc))
                    (cast uptr (FRAME tc 0)))
-      (trace (tc-U tc))
-      (trace (tc-V tc))
-      (trace (tc-W tc))
-      (trace (tc-X tc))
-      (trace (tc-Y tc))
+      (case-mode
+       [(sweep)
+        (set! (tc-U tc) 0)
+        (set! (tc-V tc) 0)
+        (set! (tc-W tc) 0)
+        (set! (tc-X tc) 0)
+        (set! (tc-Y tc) 0)]
+       [else])
       (trace (tc-threadno tc))
       (trace (tc-current-input tc))
       (trace (tc-current-output tc))
@@ -1975,6 +1983,8 @@
                  (comma-ize (map (lambda (r) (expression r config)) rands)))]
         [else
          (cond
+           [(eq? a #f) "Sfalse"]
+           [(eq? a #t) "Strue"]
            [(symbol? a)
             (cond
               [(getprop a '*c-name* #f)
