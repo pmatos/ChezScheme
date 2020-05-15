@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mach: ['trv64', 'rv64']
+        mach: ['trv64le', 'rv64le']
 
     env:
       MACH: ${{ matrix.mach }}
