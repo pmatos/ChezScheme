@@ -1,4 +1,4 @@
-# Mf-rv64le
+# Mf-rv64
 # Copyright 2020 Paulo Matos <pmatos@linki.tools>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,14 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-m = rv64le
+m = rv64
 Cpu = RISCV64
 
 mdclib = -lm -ldl -lncurses -lrt
 C = ${CC} ${CPPFLAGS} -Wpointer-arith -Wextra -Werror -Wno-implicit-fallthrough -O2 ${CFLAGS}
 o = o
-mdsrc = rv64le.c
-mdobj = rv64le.o
+mdsrc = rv64.c
+mdobj = rv64.o
 
 .SUFFIXES:
 .SUFFIXES: .c .o

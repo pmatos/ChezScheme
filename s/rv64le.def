@@ -1,4 +1,4 @@
-;;; rv64le.def
+;;; rv64.def
 ;;; Copyright 2020 Paulo Matos <pmatos@linki.tools>
 ;;; 
 ;;; Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,7 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
-(define-constant machine-type (constant machine-type-rv64le))
+(define-constant machine-type (constant machine-type-rv64))
 (define-constant architecture 'rv64)
 (define-constant address-bits 64)
 (define-constant ptr-bits 64)

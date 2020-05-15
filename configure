@@ -84,9 +84,9 @@ case "${CONFIG_UNAME}" in
       tm64=""
     elif uname -a | grep -i riscv > /dev/null 2>&1 ; then
       m32=""  # rv32 is TODO
-      m64=rv64le
+      m64=rv64
       tm32="" # trv32 is TODO
-      tm64=trv64le
+      tm64=trv64
     
     fi
     installprefix=/usr

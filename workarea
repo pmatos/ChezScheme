@@ -48,7 +48,7 @@ case "$M" in
   i3qnx) ;;
   i3s2) ;;
   ppc32le) ;;
-  rv64le) ;;
+  rv64) ;;
   ta6fb) ;;
   ta6le) ;;
   ta6nb) ;;
@@ -66,7 +66,7 @@ case "$M" in
   ti3qnx) ;;
   ti3s2) ;;
   tppc32le) ;;
-  trv64le) ;;
+  trv64) ;;
   *) echo "Unrecognized machine name $M"; exit 1 ;;
 esac
 
