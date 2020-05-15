@@ -363,7 +363,7 @@
   i3qnx     ti3qnx
   arm32le   tarm32le
   ppc32le   tppc32le
-  rv64      trv64
+  rv64le    trv64le
 )
 
 (include "machine.def")
