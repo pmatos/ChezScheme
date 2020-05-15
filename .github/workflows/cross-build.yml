@@ -1,0 +1,34 @@
+name: Cross-Build CI
+
+on: [push, pull_request]
+
+jobs:
+  
+  build-linux:
+    runs-on: ubuntu-18.04
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        mach: ['arm32le', 'ppc32le'] 
+
+    env:
+      TARGET_MACHINE: ${{ matrix.mach }}
+
+    steps:
+      - run: |
+          apt-get update
+          apt-get -y install git
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - uses: Bogdanp/setup-racket@v0.8
+        with:
+          distribution: 'minimal'  # minimal is enough
+          variant: 'CS'            # lets dog-food CS
+          version: 'current'
+          packages: 'cs-bootstrap'
+      - name: Proceed with TARGET_MACHINE == ${{ matrix.mach }}
+        run: echo $TARGET_MACHINE
+      - name: Build bootfiles
+        run: racket -l cs-bootstrap
