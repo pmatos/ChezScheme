@@ -706,6 +706,12 @@
             (pr "                        : \"=&r\" (ret)\\~%")
             (pr "                        : \"r\" (addr)\\~%")
             (pr "                        : \"cc\", \"memory\", \"r12\", \"r11\")~%")]
+          [(rv64le)
+           (pr "#define INITLOCK(addr) // stub")
+           (pr "#define SPINLOCK(addr) // stub")
+           (pr "#define UNLOCK(addr)   // stub")
+           (pr "#define LOCKED_INCR(addr, ret) // stub")
+           (pr "#define LOCKED_DECR(addr, ret) // stub")
           [else
             ($oops who "asm locking code is not yet defined for ~s" (constant architecture))]))))
 
