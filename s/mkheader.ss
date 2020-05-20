@@ -706,7 +706,7 @@
             (pr "                        : \"=&r\" (ret)\\~%")
             (pr "                        : \"r\" (addr)\\~%")
             (pr "                        : \"cc\", \"memory\", \"r12\", \"r11\")~%")]
-          [(rv64le)
+          [(rv64)
            (pr "#define INITLOCK(addr) // stub")
            (pr "#define SPINLOCK(addr) // stub")
            (pr "#define UNLOCK(addr)   // stub")
