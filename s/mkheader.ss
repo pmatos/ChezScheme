@@ -711,7 +711,7 @@
            (pr "#define SPINLOCK(addr) // stub")
            (pr "#define UNLOCK(addr)   // stub")
            (pr "#define LOCKED_INCR(addr, ret) // stub")
-           (pr "#define LOCKED_DECR(addr, ret) // stub")
+           (pr "#define LOCKED_DECR(addr, ret) // stub")]
           [else
             ($oops who "asm locking code is not yet defined for ~s" (constant architecture))]))))
 
