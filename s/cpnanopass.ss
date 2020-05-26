@@ -2934,37 +2934,6 @@
         
     (define-pass np-unbox-fp-vars! : L7 (ir) -> L7 ()
       (definitions
-        (define unify-boxed!
-          ;; union find, where representative box has a list of all variables
-          ;; that refer to the box
-          (lambda (x1 x2)
-            (let ([b1 (or (uvar-location x1)
-                          (let ([b1 (box (list x1))])
-                            (uvar-location-set! x1 b1)
-                            b1))]
-                  [b2 (or (uvar-location x2)
-                          (let ([b2 (box (list x2))])
-                            (uvar-location-set! x2 b2)
-                            b2))])
-              (let ([last-b1 (last-box b1)]
-                    [last-b2 (last-box b2)])
-                (unless (eq? last-b1 last-b2)
-                  (set-box! last-b1 (append (unbox last-b1) (unbox last-b2)))
-                  (set-box! last-b2 last-b1))
-                (compress! b1 last-b1)
-                (compress! b2 last-b1)))))
-        (define last-box
-          (lambda (b)
-            (let ([p (unbox b)])
-              (if (box? p)
-                  (last-box p)
-                  b))))
-        (define compress!
-          (lambda (b last-b)
-            (unless (eq? b last-b)
-              (let ([p (unbox b)])
-                (set-box! b last-b)
-                (compress! p last-b)))))
         (define ensure-not-unboxed!
           (lambda (x)
             (when (and (uvar? x) (eq? (uvar-type x) 'fp))
