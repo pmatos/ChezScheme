@@ -112,10 +112,17 @@
 (module (md-handle-jump) ; also sets primitive handlers
   (import asm-module)
 
+  
 )
 
 ;;; SECTION 3: assembler
-(module asm-module ()
+(module asm-module (; required exports
+                    asm-foreign-call)
+        
+  (module (asm-foreign-call asm-foreign-callable)
+                (define-who asm-foreign-call
+                  (with-output-language (L13 Effect)
+                                        (
 
 )
   
