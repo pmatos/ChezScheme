@@ -91,11 +91,11 @@
 (define-symbol-flags* ([libraries (rnrs) (rnrs arithmetic flonums)] [flags primitive proc])
   (flonum? [sig [(ptr) -> (boolean)]] [flags pure unrestricted mifoldable discard])
   (real->flonum [sig [(real) -> (flonum)]] [flags arith-op mifoldable discard safeongoodargs])
-  (fl=? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])             ; restricted to 2+ arguments
-  (fl<? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])             ; restricted to 2+ arguments
-  (fl<=? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])            ; restricted to 2+ arguments
-  (fl>? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])             ; restricted to 2+ arguments
-  (fl>=? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])            ; restricted to 2+ arguments
+  (fl=? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs unboxed-arguments])  ; restricted to 2+ arguments
+  (fl<? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs unboxed-arguments])  ; restricted to 2+ arguments
+  (fl<=? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs unboxed-arguments]) ; restricted to 2+ arguments
+  (fl>? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs unboxed-arguments])  ; restricted to 2+ arguments
+  (fl>=? [sig [(flonum flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs unboxed-arguments]) ; restricted to 2+ arguments
   (flinteger? [sig [(flonum) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])
   (flzero? [sig [(flonum) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])
   (flpositive? [sig [(flonum) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])
@@ -107,11 +107,11 @@
   (flnan? [sig [(flonum) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])
   (flmax [sig [(flonum flonum ...) -> (flonum)]] [flags arith-op mifoldable discard safeongoodargs])
   (flmin [sig [(flonum flonum ...) -> (flonum)]] [flags arith-op mifoldable discard safeongoodargs])
-  (fl* [sig [(flonum ...) -> (flonum)]] [flags arith-op partial-folder safeongoodargs])
-  (fl+ [sig [(flonum ...) -> (flonum)]] [flags arith-op partial-folder safeongoodargs])
-  (fl- [sig [(flonum flonum ...) -> (flonum)]] [flags arith-op partial-folder safeongoodargs])
-  (fl/ [sig [(flonum flonum ...) -> (flonum)]] [flags arith-op partial-folder safeongoodargs])
-  (flabs [sig [(flonum) -> (flonum)]] [flags arith-op mifoldable discard safeongoodargs])
+  (fl* [sig [(flonum ...) -> (flonum)]] [flags arith-op partial-folder safeongoodargs unboxed-arguments])
+  (fl+ [sig [(flonum ...) -> (flonum)]] [flags arith-op partial-folder safeongoodargs unboxed-arguments])
+  (fl- [sig [(flonum flonum ...) -> (flonum)]] [flags arith-op partial-folder safeongoodargs unboxed-arguments])
+  (fl/ [sig [(flonum flonum ...) -> (flonum)]] [flags arith-op partial-folder safeongoodargs unboxed-arguments])
+  (flabs [sig [(flonum) -> (flonum)]] [flags arith-op mifoldable discard safeongoodargs unboxed-arguments])
   (fldiv-and-mod [sig [(flonum flonum) -> (flonum flonum)]] [flags discard])
   (fldiv [sig [(flonum flonum) -> (flonum)]] [flags arith-op mifoldable discard])
   (flmod [sig [(flonum flonum) -> (flonum)]] [flags arith-op mifoldable discard])
@@ -1327,10 +1327,10 @@
   (flonum->fixnum [sig [(flonum) -> (fixnum)]] [flags arith-op cp02])
   (flnonpositive? [sig [(flonum) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])
   (flnonnegative? [sig [(flonum) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])
-  (fl= [sig [(flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])   ; not restricted to 2+ arguments
-  (fl< [sig [(flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])   ; not restricted to 2+ arguments
-  (fl<= [sig [(flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])  ; not restricted to 2+ arguments
-  (fl> [sig [(flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])   ; not restricted to 2+ arguments
+  (fl= [sig [(flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs unboxed-arguments])   ; not restricted to 2+ arguments
+  (fl< [sig [(flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs unboxed-arguments])   ; not restricted to 2+ arguments
+  (fl<= [sig [(flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs unboxed-arguments])  ; not restricted to 2+ arguments
+  (fl> [sig [(flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs unboxed-arguments])   ; not restricted to 2+ arguments
   (fl>= [sig [(flonum flonum ...) -> (boolean)]] [flags pure mifoldable discard safeongoodargs])  ; not restricted to 2+ arguments
   (flush-output-port [sig [() (output-port) -> (void)]] [flags true])   ; not restricted to 1 argument
   (foreign-entry? [sig [(string) -> (boolean)]] [flags discard])
@@ -1490,7 +1490,7 @@
   (make-phantom-bytevector [sig [(uptr) -> (phantom-bytevector)]] [flags true])
   (make-pseudo-random-generator [sig [() -> (pseudo-random-generator)]] [flags true])
   (make-record-type [sig [(sub-ptr sub-list) (maybe-rtd sub-ptr sub-list) -> (rtd)]] [flags pure alloc cp02])
-  (make-record-type-descriptor* [sig [(symbol maybe-rtd maybe-symbol ptr ptr fixnum exact-integer) -> (rtd)]] [flags pure alloc cp02])
+  (make-record-type-descriptor* [sig [(symbol maybe-rtd maybe-symbol ptr ptr ufixnum exact-integer) -> (rtd)]] [flags pure alloc cp02])
   (make-source-condition [sig [(ptr) -> (condition)]] [flags pure unrestricted mifoldable discard])
   (make-source-file-descriptor [sig [(string binary-input-port) (string binary-input-port ptr) -> (sfd)]] [flags true])
   (make-source-object [sig [(sfd uint uint) (sfd uint uint nzuint nzuint) -> (source-object)]] [flags pure true mifoldable discard])

@@ -369,6 +369,14 @@
             (y))))
   (error? (apply zero? 0))
   (error? (if (apply eof-object 1 2) 3 4))
+
+  (equivalent-expansion?
+   (expand/optimize '(lambda (t) (#3%$value (if t 1 (values 3 3 3))) #t))
+   (if (eqv? (optimize-level) 3)
+       '(lambda (x) #t)
+       '(lambda (x)
+          (#3%$value (if x 1 (#2%values 3 3 3)))
+          #t)))
 )
 
 (cp0-mat cp0-mrvs
@@ -3034,6 +3042,13 @@
          (not (equivalent-expansion?
                (expand/optimize `(lambda (g) ,(mk `(g))))
                '(lambda (g) (g))))
+         ;; When moving into an ignored position, ensure single valued
+         ;; in safe mode:
+         (equivalent-expansion?
+          (expand/optimize `(lambda (g) ,(mk `(g)) 0))
+          (if (= 3 (optimize-level))
+              '(lambda (g) (g) 0)
+              '(lambda (g) (#3%$value (g)) 0)))
          ;; Ditto, but in a nested procedure:
          (not (equivalent-expansion?
                (expand/optimize `(lambda () (lambda (g) ,(mk `(g)))))
@@ -3111,4 +3126,18 @@
      (equivalent-expansion?
       (expand/optimize '(let ([g1 (begin (unknown) (void))]) 10))
       '(begin (unknown) 10)))
+
+   (or (not (enable-cp0))
+       (eq? (current-eval) interpret)
+       (equal? (let ([mk (lambda (g)
+                           (letrec ([f (lambda (x)
+                                         (if (= x 100)
+                                             (g)
+                                             (f (add1 x))))])
+                             (lambda () (f 101))))])
+                 (map procedure-known-single-valued?
+                      (list (mk (lambda () 1))
+                            (mk (lambda () (values 1 2))))))
+               '(#t #f)))
+
 )
