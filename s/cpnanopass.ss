@@ -599,18 +599,13 @@
         (syntax-case x (reserved allocable machine-dependent)
           [(k (reserved [rreg rreg-alias ... rreg-callee-save? rreg-mdinfo rreg-type] ...)
               (allocable [areg areg-alias ... areg-callee-save? areg-mdinfo areg-type] ...)
-              (machine-depdendent [mdreg mdreg-alias ... mdreg-callee-save? mdreg-mdinfo mdreg-type] ...)
-              (reify-support reify-reg ...))
-           (with-implicit (k regvec arg-registers extra-registers extra-fpregisters real-register?
-                             cons-reify-registers with-initialized-registers)
+              (machine-depdendent [mdreg mdreg-alias ... mdreg-callee-save? mdreg-mdinfo mdreg-type] ...))
+           (with-implicit (k regvec arg-registers extra-registers extra-fpregisters real-register? with-initialized-registers)
              #`(begin
                  (define-reserved-registers [rreg rreg-alias ... rreg-callee-save? rreg-mdinfo rreg-type] ...)
                  (define-allocable-registers regvec arg-registers extra-registers extra-fpregisters with-initialized-registers
                    [areg areg-alias ... areg-callee-save? areg-mdinfo areg-type] ...)
                  (define-machine-dependent-registers [mdreg mdreg-alias ... mdreg-callee-save? mdreg-mdinfo mdreg-type] ...)
-                 (define-syntax cons-reify-registers
-                   (syntax-rules ()
-                     [(_ reg*) (cons* reify-reg ... reg*)]))
                  (define-syntax real-register?
                    (with-syntax ([real-reg* #''(rreg ... rreg-alias ... ... areg ... areg-alias ... ... mdreg ... mdreg-alias ... ...)])
                      (syntax-rules ()
@@ -709,8 +704,6 @@
            (fold-right
              (lambda (reg reg*)
                (cond
-                 [(eq? (syntax->datum reg) 'reify-support)
-                  #`(cons-reify-registers #,reg*)]
                  [(real-register? (syntax->datum reg))
                   #`(cons #,reg #,reg*)]
                  [else reg*]))
@@ -976,8 +969,8 @@
       (declare-intrinsic dofretu32* dofretu32* (%ac0 %ts %td %cp %ac1) (%ac0) (%xp))
       (declare-intrinsic get-room get-room () (%xp) (%xp))
       (declare-intrinsic scan-remembered-set scan-remembered-set () () ())
-      (declare-intrinsic reify-1cc reify-1cc (%xp %ac0 reify-support) () (%td))
-      (declare-intrinsic maybe-reify-cc maybe-reify-cc (%xp %ac0 reify-support) () (%td))
+      (declare-intrinsic reify-1cc reify-1cc (%xp %ac0 %ts %reify1 %reify2) () (%td)) ; %reify1 & %reify2 are defined as needed per machine...
+      (declare-intrinsic maybe-reify-cc maybe-reify-cc (%xp %ac0 %ts %reify1 %reify2) () (%td)) ; ... to have enough registers to allocate
       (declare-intrinsic dooverflow dooverflow () () ())
       (declare-intrinsic dooverflood dooverflood () (%xp) ())
       ; a dorest routine takes all of the register and frame arguments from the rest
@@ -1035,11 +1028,6 @@
       (parent info)
       (sealed #t)
       (fields type swapped?))
-
-    (define-record-type info-loadfl (nongenerative)
-      (parent info)
-      (sealed #t)
-      (fields flreg))
 
     (define-record-type info-condition-code (nongenerative)
       (parent info)
@@ -4005,10 +3993,8 @@
                         [else
                          (bind #t ([t (%constant-alloc type-flonum (constant size-flonum))])
                            (%seq
-                             (inline ,(make-info-loadfl %fptmp1) ,%load-double
-                               ,base ,index (immediate ,offset))
-                             (inline ,(make-info-loadfl %fptmp1) ,%store-double
-                               ,t ,%zero ,(%constant flonum-data-disp))
+                             (set! ,(%mref ,t ,%zero ,(constant flonum-data-disp) fp)
+                                   (unboxed-fp ,(%mref ,base ,index ,offset fp)))
                              ,t))])))]
                [(single-float)
                 (if swapped?
@@ -4018,18 +4004,22 @@
                           (set! ,(%mref ,t ,(constant flonum-data-disp))
                             (inline ,(make-info-load 'unsigned-32 #t) ,%load ,base ,index
                               (immediate ,offset)))
-                          (inline ,(make-info-loadfl %fptmp1) ,%load-single->double
-                            ,t ,%zero ,(%constant flonum-data-disp))
-                          (inline ,(make-info-loadfl %fptmp1) ,%store-double
-                            ,t ,%zero ,(%constant flonum-data-disp))
+                          (set! ,(%mref ,t ,%zero ,(constant flonum-data-disp) fp)
+                                (unboxed-fp (inline ,(make-info-unboxed-args '(#t))
+                                                    ,%load-single->double
+                                                    ;; slight abuse to call this "unboxed", but `load-single->double`
+                                                    ;; wants an FP-flavored address
+                                                    (unboxed-fp ,(%mref ,t ,%zero ,(constant flonum-data-disp) fp)))))
                           ,t)))
                     (bind #f (base index)
                       (bind #t ([t (%constant-alloc type-flonum (constant size-flonum))])
                         (%seq
-                          (inline ,(make-info-loadfl %fptmp1) ,%load-single->double
-                            ,base ,index (immediate ,offset))
-                          (inline ,(make-info-loadfl %fptmp1) ,%store-double
-                            ,t ,%zero ,(%constant flonum-data-disp))
+                          (set! ,(%mref ,t ,%zero ,(constant flonum-data-disp) fp)
+                                (unboxed-fp (inline ,(make-info-unboxed-args '(#t))
+                                                    ,%load-single->double
+                                                    ;; slight abuse to call this "unboxed", but `load-single->double`
+                                                    ;; wants an FP-flavored address
+                                                    (unboxed-fp ,(%mref ,base ,index ,offset fp)))))
                           ,t))))]
                [(integer-8 integer-16 integer-24 integer-32 integer-40 integer-48 integer-56 integer-64)
                 (build-int-load swapped? type base index offset
@@ -4108,21 +4098,14 @@
                [(double-float)
                 (bind #f (base index)
                   (bind #f fp (value)
-                   `(set! ,(%mref ,base ,index ,offset fp) ,value)))
-                #;
-                (bind #f (base index)
-                  (%seq
-                    (inline ,(make-info-loadfl %fptmp1) ,%load-double
-                      ,value ,%zero ,(%constant flonum-data-disp))
-                    (inline ,(make-info-loadfl %fptmp1) ,%store-double
-                      ,base ,index (immediate ,offset))))]
+                   `(set! ,(%mref ,base ,index ,offset fp) ,value)))]
                [(single-float)
                 (bind #f (base index)
-                  (%seq
-                    (inline ,(make-info-loadfl %fptmp1) ,%load-double->single
-                      ,value ,%zero ,(%constant flonum-data-disp))
-                    (inline ,(make-info-loadfl %fptmp1) ,%store-single
-                      ,base ,index (immediate ,offset))))]
+                  `(inline ,(make-info-unboxed-args '(#t #t)) ,%store-double->single
+                           ;; slight abuse to call this "unboxed", but `store-double->single`
+                           ;; wants an FP-flavored address
+                           (unboxed-fp ,(%mref ,base ,index ,offset fp))
+                           (unboxed-fp ,(%mref ,value ,%zero ,(constant flonum-data-disp) fp))))]
                ; 40-bit+ only on 64-bit machines
                [(integer-8 integer-16 integer-24 integer-32 integer-40 integer-48 integer-56 integer-64
                  unsigned-8 unsigned-16 unsigned-24 unsigned-32 unsigned-40 unsigned-48 unsigned-56 unsigned-64)
@@ -7543,19 +7526,14 @@
               (lambda (e1 e2)
                 (bind #f (e1 e2)
                   (bind #t ([t (%constant-alloc type-typed-object (constant size-inexactnum))])
-                    `(seq
+                    (%seq
                        (set! ,(%mref ,t ,(constant inexactnum-type-disp))
                          ,(%constant type-inexactnum))
-                       ,(%seq
-                          (inline ,(make-info-loadfl %fptmp1) ,%load-double
-                            ,e1 ,%zero ,(%constant flonum-data-disp))
-                          (inline ,(make-info-loadfl %fptmp1) ,%store-double
-                            ,t ,%zero ,(%constant inexactnum-real-disp))
-                          (inline ,(make-info-loadfl %fptmp1) ,%load-double
-                            ,e2 ,%zero ,(%constant flonum-data-disp))
-                          (inline ,(make-info-loadfl %fptmp1) ,%store-double
-                            ,t ,%zero ,(%constant inexactnum-imag-disp))
-                          ,t))))))
+                       (set! ,(%mref ,t ,%zero ,(constant inexactnum-real-disp) fp)
+                             (unboxed-fp ,(%mref ,e1 ,%zero ,(constant flonum-data-disp) fp)))
+                       (set! ,(%mref ,t ,%zero ,(constant inexactnum-imag-disp) fp)
+                             (unboxed-fp ,(%mref ,e2 ,%zero ,(constant flonum-data-disp) fp)))
+                       ,t)))))
 
             (define-inline 3 fl-make-rectangular
               [(e1 e2) (build-fl-make-rectangular e1 e2)])
@@ -7856,7 +7834,7 @@
         (define-inline 3 flonum->fixnum
           [(e-x) (bind #f (e-x)
                    (build-fix
-                     (%inline trunc ,e-x)))])
+                     `(inline ,(make-info-unboxed-args '(#t)) ,%fptrunc ,e-x)))])
         (let ()
           (define build-fixnum->flonum
            ; NB: x must already be bound in order to ensure it is done before the flonum is allocated
@@ -12178,7 +12156,10 @@
                                    (if (null? frame-x*)
                                        (begin (set! max-fv (fxmax max-fv i)) '())
                                        (let ([i (fx+ i 1)])
-                                         (cons (get-ptr-fv i) (f (cdr frame-x*) i)))))])
+                                         (cons (get-ptr-fv i) (f (cdr frame-x*) i)))))]
+                            [cp-save (meta-cond
+                                      [(real-register? '%cp) (make-tmp 'cp)]
+                                      [else #f])])
                         ; add 2 for the old RA and cchain
                         (set! max-fv (fx+ max-fv 2))
                         (let-values ([(c-init c-args c-result c-return) (asm-foreign-callable info)])
@@ -12188,17 +12169,20 @@
                           ; c-return restores callee-save registers and returns to C
                           (%seq
                             ,(c-init)
-                            ; although we don't actually need %cp in a register, we need
-                            ; to make sure that `(%tc-ref cp)` doesn't change before S_call_help
-                            ; is called, and claiming that %cp is live is the easiest way
                             ,(restore-scheme-state
-                               (in %cp)
+                               (in %cp) ; to save and then restore just before S_call_help
                                (out %ac0 %ac1 %xp %yp %ts %td scheme-args extra-regs))
                             ; need overflow check since we're effectively retroactively turning
                             ; what was a foreign call into a Scheme non-tail call
                             (fcallable-overflow-check)
                             ; leave room for the RA & c-chain
                             (set! ,%sfp ,(%inline + ,%sfp (immediate ,(fx* (constant ptr-bytes) 2))))
+                            ; stash %cp and restore later to make sure it's intact by the time
+                            ; that we get to S_call_help
+                            ,(meta-cond
+                              [(real-register? '%cp) `(set! ,cp-save ,%cp)]
+                              [else `(nop)])
+                            ; convert arguments
                             ,(fold-left (lambda (e x arg-type c-arg) `(seq ,(C->Scheme arg-type c-arg x) ,e))
                                (set-locs fv* frame-x*
                                  (set-locs (map (lambda (reg) (in-context Lvalue (%mref ,%tc ,(reg-tc-disp reg)))) reg*) reg-x*
@@ -12208,6 +12192,9 @@
                             ; needs to be a quote, not an immediate
                             (set! ,(ref-reg %ac1) (literal ,(make-info-literal #f 'object 0 0)))
                             (set! ,(ref-reg %ts) (label-ref ,self-label 0)) ; for locking
+                            ,(meta-cond
+                              [(real-register? '%cp) `(set! ,%cp ,cp-save)]
+                              [else `(nop)])
                             ,(save-scheme-state
                                (in %ac0 %ac1 %ts %cp)
                                (out %xp %yp %td scheme-args extra-regs))
@@ -12546,7 +12533,7 @@
                                              (set! ,fv0 ,%xp)
                                              ,(%mv-jump ,%xp (,%ac0 ,arg-registers ... ,fv0))))]))))))))))))
         (define reify-cc-help
-          (lambda (1-shot? always? finish)
+          (lambda (1-shot? always? save-ra? finish)
             (with-output-language (L13 Tail)
                 (%seq
                   (set! ,%td ,(%tc-ref stack-link))
@@ -12555,7 +12542,7 @@
                              (%seq
                                ,(let ([alloc
                                        (%seq
-                                        (set! ,%xp ,(%constant-alloc type-closure (constant size-continuation)))
+                                        (set! ,%xp ,(%constant-alloc type-closure (constant size-continuation) #f save-ra?))
                                         (set! ,(%mref ,%xp ,(constant continuation-code-disp))
                                               (literal ,(make-info-literal #f 'library (lookup-libspec nuate) (constant code-data-disp)))))])
                                   (if 1-shot?
@@ -12697,28 +12684,25 @@
            [(dorest4) (make-do-rest 4 frame-args-offset)]
            [(dorest5) (make-do-rest 5 frame-args-offset)]
            [(reify-1cc maybe-reify-cc)
-            (let ([other-reg* (fold-left (lambda (live* kill) (remq kill live*))
-                                         (vector->list regvec)
-                                         ;; Registers used by `reify-cc-help` output,
-                                         ;; including some as needed per machine
-                                         (reg-list %xp %td %ac0 reify-support))]
-                  [1cc? (eq? sym 'reify-1cc)])
+            (let ([1cc? (eq? sym 'reify-1cc)])
               `(lambda ,(make-named-info-lambda (if 1cc? "reify-1cc" "maybe-reify-cc") '(0)) 0 ()
                 ,(asm-enter
                    (%seq
-                     (check-live ,other-reg* ...)
-                     ,(reify-cc-help 1cc? 1cc?
+                     ;; make sure the reify-1cc intrinsic declares kill for registers used by `reify-cc-help`,
+                     ;; plus (say) %ts to have one to allocate, plus more as needed to allocate per machine
+                     (check-live ,(intrinsic-entry-live* reify-1cc) ...)
+                     ,(reify-cc-help 1cc? 1cc? #t
                        (lambda (reg)
                          (if (eq? reg %td)
-                             `(asm-return ,%td ,other-reg* ...)
+                             `(asm-return ,%td ,(intrinsic-return-live* reify-1cc) ...)
                              `(seq
                                 (set! ,%td ,reg)
-                                (asm-return ,%td ,other-reg* ...)))))))))]
+                                (asm-return ,%td ,(intrinsic-return-live* reify-1cc) ...)))))))))]
            [(callcc)
             `(lambda ,(make-named-info-lambda 'callcc '(1)) 0 ()
                ,(%seq
                   (set! ,(ref-reg %cp) ,(make-arg-opnd 1))
-                  ,(reify-cc-help #f #f
+                  ,(reify-cc-help #f #f #f
                     (lambda (reg)
                       (%seq
                         (set! ,(make-arg-opnd 1) ,reg)
@@ -15716,7 +15700,7 @@
           [(asm-return) (values (asm-return) chunk* offset)]
           [(asm-c-return ,info) (values (asm-c-return info) chunk* offset)]
           [(jump (label-ref ,l ,offset0))
-           (values (asm-direct-jump l (adjust-return-point-offset offset0 l)) chunk* offset)]
+           (values (asm-direct-jump l offset0) chunk* offset)]
           [(jump (literal ,info))
            (values (asm-literal-jump info) chunk* offset)]
           [(jump ,t)
@@ -15799,8 +15783,7 @@
           [(rp-compact-header ,error-on-values ,fs ,lpm) (values (asm-rp-compact-header code* error-on-values fs lpm current-func #f) chunk* offset)]
           [(set! ,x (label-ref ,l ,offset1))
            (guard (eq? (local-label-func l) current-func))
-           (let ([chunk (make-chunk code*)]
-                 [offset1 (adjust-return-point-offset offset1 l)])
+           (let ([chunk (make-chunk code*)])
              (let ([offset (fx+ (chunk-size chunk) offset)] [chunk* (cons chunk chunk*)])
                (let ([chunk (asm-return-address x l offset1 offset)])
                  (values '() (cons chunk chunk*) (fx+ (chunk-size chunk) offset)))))]
