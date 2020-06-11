@@ -1,3 +1,4 @@
+;; -*- geiser-scheme-implementation: chez -*-
 ;;; rv64.ss
 ;;; Copyright 2020 Paulo Matos <pmatos@linki.tools>
 ;;; 
@@ -62,7 +63,6 @@
 
 ;; Mapping of scheme specific task registers to registers of the CPU
 (define-registers
-;; Use saved registers r18-r21 for %tc, %sfp, %ap and %trap
   (reserved
     ;; Three or more cols for each definition
     ;reg   alias ...         callee-save reg-mdinfo
@@ -98,27 +98,91 @@
     [      %x28 %t3                   #f 28 uptr]
     [      %x29 %t4                   #f 29 uptr]
     [      %x30 %t5                   #f 30 uptr]
-    [      %x31 %t6                   #f 31 uptr])
+    [      %x31 %t6                   #f 31 uptr]
+    [                     %f18 %fs2    #t 51 fp]
+    [                     %f19 %fs3    #t 52 fp]
+    )
   (machine-dependent
-   [%sp   %x2        #f         2 uptr]
-   [%pc              #f        32 uptr]
-   [%flreg1          #f        33 uptr]
-   [      %f10 %fa0 %Cfpretval       #f 43 fp]
-   [      %f11 %fa1 %Cfpretval1      #f 44 fp]))
+   [%sp                  %x2          #t  2 uptr]
+   ;; There is really not a specific number for the pc reg
+   ;; so we fake it and call it 32
+   [%pc                               #f 32 uptr]
+   ;; Floating point registers
+   [                     %f0  %ft0    #f 33 fp]
+   [                     %f1  %ft1    #f 34 fp]
+   [                     %f2  %ft2    #f 35 fp]
+   [                     %f3  %ft3    #f 36 fp]
+   [                     %f4  %ft4    #f 37 fp]
+   [                     %f5  %ft5    #f 38 fp]
+   [                     %f6  %ft6    #f 39 fp]
+   [                     %f7  %ft7    #f 40 fp]
+   [                     %f8  %fs0    #t 41 fp]
+   [                     %f9  %fs1    #t 42 fp]
+   [%Cfparg1 %Cfpretval  %f10 %fa0    #f 43 fp]
+   [%Cfparg2 %Cfpretval1 %f11 %fa1    #f 44 fp]
+   [%Cfparg3             %f12 %fa2    #f 45 fp]
+   [%Cfparg4             %f13 %fa3    #f 46 fp]
+   [%Cfparg5             %f14 %fa4    #f 47 fp]
+   [%Cfparg6             %f15 %fa5    #f 48 fp]
+   [%Cfparg7             %f16 %fa6    #f 49 fp]
+   [%Cfparg8             %f17 %fa7    #f 50 fp]
+   ;; f18 and f19 are in the allocable section
+   [                     %f20 %fs4    #t 53 fp]
+   [                     %f21 %fs5    #t 54 fp]
+   [                     %f22 %fs6    #t 55 fp]
+   [                     %f23 %fs7    #t 56 fp]
+   [                     %f24 %fs8    #t 57 fp]
+   [                     %f25 %fs9    #t 58 fp]
+   [                     %f26 %fs10   #t 59 fp]
+   [                     %f27 %fs11   #t 60 fp]
+   [                     %f28 %ft8    #f 61 fp]
+   [                     %f29 %ft9    #f 62 fp]
+   [                     %f30 %ft10   #f 63 fp]
+   [                     %f31 %ft11   #f 64 fp]
+   ))
 
 ;;; SECTION 2: instructions
 (module (md-handle-jump) ; also sets primitive handlers
-  (import asm-module)
 
+    (import asm-module)
   
-)
+  (define mem?
+    (lambda (x) #t))
+  
+  (define md-handle-jump
+    (lambda (t)
+      (with-output-language
+       (L15d Tail)
+       (define long-form
+         (lambda (e)
+           (let ([tmp (make-tmp 'utmp)])
+             (values
+              (in-context Effect `(set! ,(make-live-info) ,tmp ,e))
+              `(jump ,tmp)))))
+       
+       (nanopass-case (L15c Triv) t
+                      [,lvalue (values '() `(jump ,lvalue))]
+                      [(literal ,info) (values '() `(jump (literal ,info)))]
+                      [(label-ref ,l ,offset) (values '() `(jump (label-ref ,l ,offset)))]
+                      [else (long-form t)])))))
 
 ;;; SECTION 3: assembler
-(module asm-module (; required exports
-                    asm-foreign-call)
-        
-  (module (asm-foreign-call asm-foreign-callable)
-
-    (define-who asm-foreign-call
-      (with-output-language (L13 Effect)
-        (let () #false)))))
+(module asm-module (asm-foreign-call
+                    asm-foreign-callable
+                    asm-enter)
+  
+  (module (asm-foreign-call
+           asm-foreign-callable
+           asm-enter)
+      
+      (define-who asm-foreign-call
+        (with-output-language
+         (L13 Effect)
+         (let () #false)))
+    
+    (define-who asm-foreign-callable
+      (with-output-language
+       (L13 Effect)
+       (let () #false)))
+    
+    (define asm-enter values)))
