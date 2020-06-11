@@ -66,47 +66,45 @@
   (reserved
     ;; Three or more cols for each definition
     ;reg   alias ...         callee-save reg-mdinfo
-    [%tc   %x9 %s1           #t          9] ;; thread context
-    [%sfp  %x8 %s0  %fp      #t          8] ;; scheme frame pointer
-    [%ap   %x10 %a0 %Carg1 %Cretval   #f         10] ;;  
-    [%trap %x11 %a1 %Carg2 %Cretval1  #f         11] ;; tracks when scheme should check for interrupts
-    [%real-zero %x0          #f          0]);; hardwired zero - can't call it %zero
+    [%tc   %x9 %s1           #t          9 uptr] ;; thread context
+    [%sfp  %x8 %s0  %fp      #t          8 uptr] ;; scheme frame pointer
+    [%ap   %x10 %a0 %Carg1 %Cretval   #f         10 uptr] ;;  
+    [%trap %x11 %a1 %Carg2 %Cretval1  #f         11 uptr] ;; tracks when scheme should check for interrupts
+    [%real-zero %x0          #f          0 uptr]);; hardwired zero - can't call it %zero
   (allocable
-    [%ac0  %x12 %a2 %Carg3   #f         12] ;; argument count
-    [%xp   %x13 %a3 %Carg4   #f         13] ;; used during alloc for the computed alloc spot
-    [%ts   %x14 %a4 %Carg5   #f         14] ;; special temps
-    [%td   %x15 %a5 %Carg6   #f         15] ;; special temps
-    [%cp   %x16 %a6 %Carg7   #f         16] ;; closure pointer
+    [%ac0  %x12 %a2 %Carg3   #f         12 uptr] ;; argument count
+    [%xp   %x13 %a3 %Carg4   #f         13 uptr] ;; used during alloc for the computed alloc spot
+    [%ts   %x14 %a4 %Carg5   #f         14 uptr] ;; special temps
+    [%td   %x15 %a5 %Carg6   #f         15 uptr] ;; special temps
+    [%cp   %x16 %a6 %Carg7   #f         16 uptr] ;; closure pointer
     ;; Extra registers - length should match asm-arg-reg-max
-    [      %x1  %ra %lr               #f  1]
-    [      %x3  %gp                   #f  3]
-    [      %x4  %tp                   #f  4]
-    [      %x5  %t0                   #f  5]
-    [      %x6  %t1                   #f  6]
-    [      %x7  %t2                   #f  7]
-    [      %x17 %a7 %Carg8            #f 17]
-    [      %x18 %s2                   #t 18]
-    [      %x19 %s3                   #t 19]
-    [      %x20 %s4                   #t 20]
-    [      %x21 %s5                   #t 21]
-    [      %x22 %s6                   #t 22]
-    [      %x23 %s7                   #t 23]
-    [      %x24 %s8                   #t 24]
-    [      %x25 %s9                   #t 25]
-    [      %x26 %s10                  #t 26]
-    [      %x27 %s11                  #t 27]
-    [      %x28 %t3                   #f 28]
-    [      %x29 %t4                   #f 29]
-    [      %x30 %t5                   #f 30]
-    [      %x31 %t6                   #f 31]
-  )
+    [      %x1  %ra %lr               #f  1 uptr]
+    [      %x3  %gp                   #f  3 uptr]
+    [      %x4  %tp                   #f  4 uptr]
+    [      %x5  %t0                   #f  5 uptr]
+    [      %x6  %t1                   #f  6 uptr]
+    [      %x7  %t2                   #f  7 uptr]
+    [      %x17 %a7 %Carg8            #f 17 uptr]
+    [      %x18 %s2                   #t 18 uptr]
+    [      %x19 %s3                   #t 19 uptr]
+    [      %x20 %s4                   #t 20 uptr]
+    [      %x21 %s5                   #t 21 uptr]
+    [      %x22 %s6                   #t 22 uptr]
+    [      %x23 %s7                   #t 23 uptr]
+    [      %x24 %s8                   #t 24 uptr]
+    [      %x25 %s9                   #t 25 uptr]
+    [      %x26 %s10                  #t 26 uptr]
+    [      %x27 %s11                  #t 27 uptr]
+    [      %x28 %t3                   #f 28 uptr]
+    [      %x29 %t4                   #f 29 uptr]
+    [      %x30 %t5                   #f 30 uptr]
+    [      %x31 %t6                   #f 31 uptr])
   (machine-dependent
-   [%sp   %x2        #f         2]
-   [%pc              #f        32]
-   [%flreg1          #f        33]
-   [      %f10 %fa0 %Cfpretval       #f 43]
-   [      %f11 %fa1 %Cfpretval1      #f 44]
-   ))
+   [%sp   %x2        #f         2 uptr]
+   [%pc              #f        32 uptr]
+   [%flreg1          #f        33 uptr]
+   [      %f10 %fa0 %Cfpretval       #f 43 fp]
+   [      %f11 %fa1 %Cfpretval1      #f 44 fp]))
 
 ;;; SECTION 2: instructions
 (module (md-handle-jump) ; also sets primitive handlers
@@ -120,9 +118,7 @@
                     asm-foreign-call)
         
   (module (asm-foreign-call asm-foreign-callable)
-                (define-who asm-foreign-call
-                  (with-output-language (L13 Effect)
-                                        (
 
-)
-  
+    (define-who asm-foreign-call
+      (with-output-language (L13 Effect)
+        (let () #false)))))
