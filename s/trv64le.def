@@ -29,6 +29,12 @@
 (define-constant max-integer-alignment 8)
 (define-constant asm-arg-reg-max 21)
 (define-constant asm-arg-reg-cnt 8)
+
+;; What's this for?
+;; Sounds like the maximum number of available fp regs
+;; but it's set to 2 in all other archs... doing the same here
+;; for now.
+(define-constant asm-fpreg-max 2) 
 (define-constant typedef-ptr "void *")
 (define-constant typedef-iptr "long")
 (define-constant typedef-uptr "unsigned long")
