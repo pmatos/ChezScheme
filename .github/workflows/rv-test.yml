@@ -1,0 +1,33 @@
+name: Test RISCV
+
+on: [push, pull_request]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-18.04
+    container: debian:buster-slim
+    continue-on-error: true
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        mach: ['trv64le', 'rv64le']
+
+    env:
+      MACH: ${{ matrix.mach }}
+
+    steps:
+      - run: |
+          apt-get update
+          apt-get -y install git
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - uses: Bogdanp/setup-racket@v0.8
+        with:
+          distribution: 'minimal'  # minimal is enough
+          variant: 'CS'            # lets dog-food CS
+          version: 'current'
+          packages: 'cs-bootstrap'
+      - name: Build bootfiles
+        run: racket -l cs-bootstrap
