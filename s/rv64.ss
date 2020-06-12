@@ -143,46 +143,46 @@
 
 ;;; SECTION 2: instructions
 (module (md-handle-jump) ; also sets primitive handlers
-
-    (import asm-module)
-  
-  (define mem?
-    (lambda (x) #t))
-  
-  (define md-handle-jump
-    (lambda (t)
-      (with-output-language
-       (L15d Tail)
-       (define long-form
-         (lambda (e)
-           (let ([tmp (make-tmp 'utmp)])
-             (values
-              (in-context Effect `(set! ,(make-live-info) ,tmp ,e))
-              `(jump ,tmp)))))
-       
-       (nanopass-case (L15c Triv) t
-                      [,lvalue (values '() `(jump ,lvalue))]
-                      [(literal ,info) (values '() `(jump (literal ,info)))]
-                      [(label-ref ,l ,offset) (values '() `(jump (label-ref ,l ,offset)))]
-                      [else (long-form t)])))))
+        
+        (import asm-module)
+        
+        (define mem?
+          (lambda (x) #t))
+        
+        (define md-handle-jump
+          (lambda (t)
+            (with-output-language
+             (L15d Tail)
+             (define long-form
+               (lambda (e)
+                 (let ([tmp (make-tmp 'utmp)])
+                   (values
+                    (in-context Effect `(set! ,(make-live-info) ,tmp ,e))
+                    `(jump ,tmp)))))
+             
+             (nanopass-case (L15c Triv) t
+                            [,lvalue (values '() `(jump ,lvalue))]
+                            [(literal ,info) (values '() `(jump (literal ,info)))]
+                            [(label-ref ,l ,offset) (values '() `(jump (label-ref ,l ,offset)))]
+                            [else (long-form t)])))))
 
 ;;; SECTION 3: assembler
 (module asm-module (asm-foreign-call
                     asm-foreign-callable
                     asm-enter)
-  
-  (module (asm-foreign-call
-           asm-foreign-callable
-           asm-enter)
-      
-      (define-who asm-foreign-call
-        (with-output-language
-         (L13 Effect)
-         (let () #false)))
-    
-    (define-who asm-foreign-callable
-      (with-output-language
-       (L13 Effect)
-       (let () #false)))
-    
-    (define asm-enter values)))
+        
+        (module (asm-foreign-call
+                 asm-foreign-callable
+                 asm-enter)
+                
+                (define-who asm-foreign-call
+                  (with-output-language
+                   (L13 Effect)
+                   (let () #false)))
+                
+                (define-who asm-foreign-callable
+                  (with-output-language
+                   (L13 Effect)
+                   (let () #false)))
+                
+                (define asm-enter values)))
