@@ -14,6 +14,6 @@
 # limitations under the License.
 
 m = rv64le
-archincludes = rv64le.ss
+archincludes = rv64.ss
 
 include Mf-base

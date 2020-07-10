@@ -1,4 +1,3 @@
-;; -*- geiser-scheme-implementation: chez -*-
 ;;; rv64.ss
 ;;; Copyright 2020 Paulo Matos <pmatos@linki.tools>
 ;;; 
@@ -142,47 +141,148 @@
    ))
 
 ;;; SECTION 2: instructions
-(module (md-handle-jump) ; also sets primitive handlers
-        
-        (import asm-module)
-        
-        (define mem?
-          (lambda (x) #t))
-        
-        (define md-handle-jump
-          (lambda (t)
-            (with-output-language
-             (L15d Tail)
-             (define long-form
-               (lambda (e)
-                 (let ([tmp (make-tmp 'utmp)])
-                   (values
-                    (in-context Effect `(set! ,(make-live-info) ,tmp ,e))
-                    `(jump ,tmp)))))
+(module (md-handle-jump) ; also sets primitive handlers        
+  (import asm-module)
+
+  (define-syntax (seq x)
+    (syntax-case x ()
+      [(_ e ... ex)
+       (with-syntax ([(t ...) (generate-temporaries #'(e ...))])
+         #'(let ([t e] ...)
+             (with-values ex
+               (case-lambda
+                 [(x*) (cons* t ... x*)]
+                 [(x* p) (values (cons* t ... x*) p)]))))]))
+  
+  (define lmem? mref?)
+  
+  (define (mem? x)
+    (or (lmem? x) (literal@? x)))
+
+  (define (set-ur=mref ur mref)
+    (mref->mref mref
+      (lambda (mref)
+        (build-set! ,ur ,mref))))
+  
+  (define (lvalue->ur x k)
+    (if (mref? x)
+        (let ([u (make-tmp 'u)])
+          (seq
+           (set-ur=mref u x)
+           (k u)))
+        (k x)))
+  
+  (define (mref->mref a k)
+    (define (return x0 x1 imm type)
+      (k
+       (with-output-language (L15d Triv)
+         `(mref ,x0 ,x1 ,imm ,type))))
+    (nanopass-case (L15c Triv) a
+      [(mref ,lvalue0 ,lvalue1 ,imm ,type)
+       (lvalue->ur lvalue0
+         (lambda (x0)
+           (lvalue->ur lvalue1
+             (lambda (x1)
+               (return x0 x1 imm type)))))]))
+       
+  (define (mem->mem a k)
+    (cond
+     [(literal@? a)
+      (let ([u (make-tmp 'u)])
+        (seq
+         (build-set! ,u ,(literal@->literal a))
+         (k
+          (with-output-language (L15d Lvalue)
+            `(mref ,u ,%zero 0 ptr)))))]
+     [else (mref->mref a k)]))
+  
+  (define (md-handle-jump t)
+    (with-output-language (L15d Tail)
              
-             (nanopass-case (L15c Triv) t
-                            [,lvalue (values '() `(jump ,lvalue))]
-                            [(literal ,info) (values '() `(jump (literal ,info)))]
-                            [(label-ref ,l ,offset) (values '() `(jump (label-ref ,l ,offset)))]
-                            [else (long-form t)])))))
+      (nanopass-case (L15c Triv) t
+        [,lvalue
+         (if (mem? lvalue)
+             (mem->mem lvalue (lambda (e) (values '() `(jump ,e))))
+             (values '() `(jump ,lvalue)))]
+        [(literal ,info) (values '() `(jump (literal ,info)))]
+        [(label-ref ,l ,offset) (values '() `(jump (label-ref ,l ,offset)))]))))
 
 ;;; SECTION 3: assembler
-(module asm-module (asm-foreign-call
+(module asm-module (
+                    asm-c-return
+                    asm-conditional-jump
+                    asm-direct-jump
+                    asm-enter
+                    asm-foreign-call
                     asm-foreign-callable
-                    asm-enter)
-        
-        (module (asm-foreign-call
-                 asm-foreign-callable
-                 asm-enter)
-                
-                (define-who asm-foreign-call
-                  (with-output-language
-                   (L13 Effect)
-                   (let () #false)))
-                
-                (define-who asm-foreign-callable
-                  (with-output-language
-                   (L13 Effect)
-                   (let () #false)))
-                
-                (define asm-enter values)))
+                    asm-fpmove
+                    asm-indirect-jump
+                    asm-jump
+                    asm-library-jump
+                    asm-literal-jump
+                    asm-move
+                    asm-return
+                    asm-return-address
+                    asm-rp-compact-header
+                    asm-rp-header
+                    asm-size
+                    )
+
+  (define asm-enter values)
+  
+  (define (asm-c-return info) 
+    (sorry! 'asm-c-return "unimplemented: asm-c-return"))
+
+  (define (asm-direct-jump l offset)
+    (sorry! 'asm-direct-jump "unimplemented: asm-direct-jump"))
+
+  (define-who (asm-indirect-jump src)
+    (sorry! who "unimplemented: asm-indirect-jump"))
+
+  (define (asm-library-jump l)
+    (sorry! 'asm-library-jump "unimplemented: asm-library-jump"))
+
+  (define (asm-return) 
+    (sorry! 'asm-return "unimplemented: asm-return"))
+
+  (define-who (asm-fpmove code* dest src)
+    (sorry! who "unimplemented: asm-fpmove"))
+
+  (define (asm-literal-jump info)
+    (sorry! 'asm-literal-jump "unimplemented: asm-literal-jump"))
+
+  (define-who (asm-move code* dest src)
+    (sorry! who "unimplemented: asm-move"))
+
+  (define (asm-rp-compact-header code* err? fs lpm func code-size)
+    (sorry! 'asm-rp-compact-header "unimplemented: asm-rp-compact-header"))
+
+  (define (asm-rp-header code* mrvl fs lpm func code-size)
+    (sorry! 'asm-rp-header "unimplemented: asm-rp-header"))
+
+  (define (asm-size x)
+    (case (car x)
+      [(asm rv64-abs rv64-jump rv64-call) 0]
+      [else 8]))
+
+  (define-who (asm-jump l next-addr)
+    (sorry! who "unimplemented: asm-jump"))
+
+  (define-who (asm-conditional-jump info l1 l2 next-addr)
+    (sorry! who "unimplemented: asm-conditional-jump"))
+
+  (define-who (asm-return-address dest l incr-offset next-addr)
+    (sorry! who "unimplemented: asm-return-address"))
+
+  (module (
+           asm-foreign-call
+           asm-foreign-callable
+           )
+      
+    (define-who asm-foreign-call
+      (with-output-language (L13 Effect)
+        (let () #f)))
+    
+    (define-who asm-foreign-callable
+      (with-output-language (L13 Effect)
+        (let () #f)))))
